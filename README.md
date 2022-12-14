@@ -2,25 +2,23 @@
 
 **Developed for:** Beetsi
 
-**Team:** Sélimi
+**Team:** Selimi
 
-**Date:** décembre 2022
+**Date:** December 2022
 
 **Software:** Fiji
 
 ### Images nucleus 3D stack 
 
-3D images taken with a x40/x60 objective
+3D images of granules cells
 
-1 channels:
+*CSU_405* channel: Hoechst-marked nuclei
 
-1. DAPI: DAPI nuclei
+With each image should be provided a *.roi* or *.zip* file containing one or multiple ROI(s).
 
 ### Plugin description
 
-* In 3D images of granule cells, count nuclei. Based on volume of packed nucleus correlated by as nucleus volume estimation 250 microns^3. Accept rois
-
-* Roi volume
+Count nuclei based on the total volume of packed nuclei divided by as nucleus volume estimation of 250 microns^3. 
 
 ### Dependencies
 

@@ -3,7 +3,7 @@
  * Author: ORION-CIRB
  */
 
-import CFos_Granule_Cells3D_Tools.Tools;
+import Granule_Cells3D_Tools.Tools;
 import ij.*;
 import ij.gui.Roi;
 import ij.plugin.PlugIn;
@@ -31,7 +31,7 @@ import org.apache.commons.io.FilenameUtils;
 
 
 
-public class CFos_Granule_Cells3D implements PlugIn {
+public class Granule_Cells3D implements PlugIn {
     
     Tools tools = new Tools();
     private boolean canceled = false;
@@ -134,7 +134,7 @@ public class CFos_Granule_Cells3D implements PlugIn {
             outPutResults.close();
             System.out.println("Process done");
         } catch (IOException | DependencyException | ServiceException | FormatException ex) {
-            Logger.getLogger(CFos_Granule_Cells3D.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Granule_Cells3D.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 }

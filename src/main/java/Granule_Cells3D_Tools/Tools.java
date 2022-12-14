@@ -1,4 +1,4 @@
-package CFos_Granule_Cells3D_Tools;
+package Granule_Cells3D_Tools;
 
 import ij.IJ;
 import ij.ImagePlus;

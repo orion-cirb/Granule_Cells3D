@@ -7,10 +7,10 @@
 
         
 	<groupId>cirb</groupId>
-	<artifactId>CFos_Granule_Cells3D</artifactId>
+	<artifactId>Granule_Cells3D</artifactId>
 	<version>1.0.0</version>
         <packaging>jar</packaging>
-	<name>CFos_Granule_Cells3D</name>
+	<name>Granule_Cells3D</name>
 	<description>
             Count nuclei and C-Fos-positive cells in granule cells
         </description>

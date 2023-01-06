@@ -1,14 +1,18 @@
 package Granule_Cells3D_Tools;
 
+import fiji.util.gui.GenericDialogPlus;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
+import ij.gui.WaitForUserDialog;
 import ij.measure.Calibration;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
 import ij.process.ImageProcessor;
 import io.scif.DependencyException;
+import java.awt.Color;
+import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
 import static java.lang.Math.round;
@@ -32,9 +36,11 @@ public class Tools {
     private final ImageIcon icon = new ImageIcon(this.getClass().getResource("/Orion_icon.png"));
     
     public Calibration cal = new Calibration();
+    public double pixelVol;
+    String[] channelsName = {"Nuclei: "};
     
     // Nuclei detection
-    private double meanNucVol = 250; 
+    private double meanNucVol = 200; 
     
     
     /**
@@ -52,12 +58,6 @@ public class Tools {
     public boolean checkInstalledModules() {
         ClassLoader loader = IJ.getClassLoader();
         try {
-            loader.loadClass("mcib3d.geom.Object3D");
-        } catch (ClassNotFoundException e) {
-            IJ.showMessage("Error", "3D ImageJ Suite not installed, please install from update site");
-            return false;
-        }
-        try {
             loader.loadClass("net.haesleinhuepf.clij2.CLIJ2");
         } catch (ClassNotFoundException e) {
             IJ.log("CLIJ not installed, please install from update site");
@@ -68,7 +68,16 @@ public class Tools {
     
     
     /**
-     * Find image type
+     * Flush and close an image
+     */
+    public void flush_close(ImagePlus img) {
+        img.flush();
+        img.close();
+    }
+    
+    
+    /**
+     * Find images extension
      */
     public String findImageType(File imagesFolder) {
         String ext = "";
@@ -85,12 +94,21 @@ public class Tools {
                 case "lif"  :
                     ext = fileExt;
                     break;
-                case "isc2" :
+                case "ics" :
+                    ext = fileExt;
+                    break;
+                case "ics2" :
+                    ext = fileExt;
+                    break;
+                case "lsm" :
                     ext = fileExt;
                     break;
                 case "tif" :
                     ext = fileExt;
-                    break;    
+                    break;
+                case "tiff" :
+                    ext = fileExt;
+                    break;
             }
         }
         return(ext);
@@ -104,14 +122,14 @@ public class Tools {
         File inDir = new File(imagesFolder);
         String[] files = inDir.list();
         if (files == null) {
-            System.out.println("No image found in "+imagesFolder);
+            System.out.println("No image found in " + imagesFolder);
             return null;
         }
         ArrayList<String> images = new ArrayList();
         for (String f : files) {
             // Find images with extension
             String fileExt = FilenameUtils.getExtension(f);
-            if (fileExt.equals(imageExt))
+            if (fileExt.equals(imageExt) && !f.startsWith("."))
                 images.add(imagesFolder + File.separator + f);
         }
         Collections.sort(images);
@@ -122,7 +140,7 @@ public class Tools {
     /**
      * Find image calibration
      */
-    public Calibration findImageCalib(IMetadata meta) {
+    public void findImageCalib(IMetadata meta) {
         cal.pixelWidth = meta.getPixelsPhysicalSizeX(0).value().doubleValue();
         cal.pixelHeight = cal.pixelWidth;
         if (meta.getPixelsPhysicalSizeZ(0) != null)
@@ -131,18 +149,17 @@ public class Tools {
             cal.pixelDepth = 1;
         cal.setUnit("microns");
         System.out.println("XY calibration = " + cal.pixelWidth + ", Z calibration = " + cal.pixelDepth);
-        return(cal);
     }
     
     
-     /**
+    /**
      * Find channels name
      * @throws loci.common.services.DependencyException
      * @throws loci.common.services.ServiceException
      * @throws loci.formats.FormatException
      * @throws java.io.IOException
      */
-    public String[] findChannels (String imageName, IMetadata meta, ImageProcessorReader reader) throws DependencyException, ServiceException, FormatException, IOException {
+    public String[] findChannels (String imageName, IMetadata meta, ImageProcessorReader reader) throws loci.common.services.DependencyException, ServiceException, FormatException, IOException {
         int chs = reader.getSizeC();
         String[] channels = new String[chs];
         String imageExt =  FilenameUtils.getExtension(imageName);
@@ -153,7 +170,16 @@ public class Tools {
                     if (meta.getChannelID(0, n) == null)
                         channels[n] = Integer.toString(n);
                     else 
-                        channels[n] = meta.getChannelName(0, n).toString();
+                        channels[n] = meta.getChannelName(0, n);
+                }
+                break;
+            case "nd2" :
+                for (int n = 0; n < chs; n++) 
+                {
+                    if (meta.getChannelID(0, n) == null)
+                        channels[n] = Integer.toString(n);
+                    else 
+                        channels[n] = meta.getChannelName(0, n);
                 }
                 break;
             case "lif" :
@@ -161,14 +187,14 @@ public class Tools {
                     if (meta.getChannelID(0, n) == null || meta.getChannelName(0, n) == null)
                         channels[n] = Integer.toString(n);
                     else 
-                        channels[n] = meta.getChannelName(0, n).toString();
+                        channels[n] = meta.getChannelName(0, n);
                 break;
             case "czi" :
                 for (int n = 0; n < chs; n++) 
                     if (meta.getChannelID(0, n) == null)
                         channels[n] = Integer.toString(n);
                     else 
-                        channels[n] = meta.getChannelFluor(0, n).toString();
+                        channels[n] = meta.getChannelFluor(0, n);
                 break;
             case "ics" :
                 for (int n = 0; n < chs; n++) 
@@ -176,7 +202,14 @@ public class Tools {
                         channels[n] = Integer.toString(n);
                     else 
                         channels[n] = meta.getChannelExcitationWavelength(0, n).value().toString();
-                break;    
+                break;
+            case "ics2" :
+                for (int n = 0; n < chs; n++) 
+                    if (meta.getChannelID(0, n) == null)
+                        channels[n] = Integer.toString(n);
+                    else 
+                        channels[n] = meta.getChannelExcitationWavelength(0, n).value().toString();
+                break;   
             default :
                 for (int n = 0; n < chs; n++)
                     channels[n] = Integer.toString(n);
@@ -186,57 +219,75 @@ public class Tools {
     
         
     /**
-     * Flush and close an image
+     * Generate dialog box
      */
-    public void flush_close(ImagePlus img) {
-        img.flush();
-        img.close();
-    }
-    
-    /**
-     * Clear out side roi
-     * @param img
-     * @param roi
-     */
-    public void clearOutSide(ImagePlus img, Roi roi) {
-        PolygonRoi poly = new PolygonRoi(roi.getFloatPolygon(), Roi.FREEROI);
-        poly.setLocation(0, 0);
-        for (int n = 1; n <= img.getNSlices(); n++) {
-            ImageProcessor ip = img.getImageStack().getProcessor(n);
-            ip.setRoi(poly);
-            ip.setBackgroundValue(0);
-            ip.setColor(0);
-            ip.fillOutside(poly);
+    public String[] dialog(String[] channels) {
+        GenericDialogPlus gd = new GenericDialogPlus("Parameters");
+        gd.setInsets​(0, 80, 0);
+        gd.addImage(icon);
+        
+        gd.addMessage("Channels", Font.getFont("Monospace"), Color.blue);
+        int index = 0;
+        for (String ch : channelsName) {
+            gd.addChoice(ch, channels, channels[index]);
+            index++;
         }
-        img.updateAndDraw();
-    } 
+        
+        gd.addMessage("Nuclei detection", Font.getFont("Monospace"), Color.blue);
+        gd.addNumericField("Mean nucleus volume (µm3): ", meanNucVol);
+        
+        gd.addMessage("Image calibration", Font.getFont("Monospace"), Color.blue);
+        gd.addNumericField("Pixel size (µm):", cal.pixelWidth);
+        gd.addNumericField("Pixel depth (µm): ", cal.pixelDepth);
+        gd.showDialog();
+        
+        String[] ch = new String[channelsName.length];
+        for (int i = 0; i < channelsName.length; i++)
+            ch[i] = gd.getNextChoice();
+        if(gd.wasCanceled())
+           ch = null;
+                
+        meanNucVol = gd.getNextNumber();
+        
+        cal.pixelWidth = cal.pixelHeight = gd.getNextNumber();
+        cal.pixelDepth = gd.getNextNumber();
+        pixelVol = cal.pixelWidth * cal.pixelHeight * cal.pixelDepth;
+
+        return(ch);
+    }
+  
     
     /**
-     * Get the number of nuclei in the image
-     * compute nuclei area
-     * divide area by meanNucleusArea
+     * Get the number of nuclei in the image:
+     * Compute nuclei volume and divide it by meanNucVol
      */ 
-    public double getNbNuclei(ImagePlus img, Roi roi) {
+    public int getNbNuclei(ImagePlus img, Roi roi) {
         ImagePlus imgG = gaussian_filter(img, 4);
         imgG = threshold(imgG, "Otsu");
         imgG = median_filter(imgG, 4, 4);
-        clearOutSide(img, roi);
+        clearOutside(imgG, roi);
+        imgG.setCalibration(cal);
+        
+        imgG.duplicate().show();
+        new WaitForUserDialog("").show();
+        
         ResultsTable rt = new ResultsTable();
-        Analyzer ana = new Analyzer(imgG, Analyzer.AREA+Analyzer.LIMIT, rt);
+        Analyzer analyzer = new Analyzer(imgG, Analyzer.AREA+Analyzer.LIMIT, rt);
         double area = 0;
         for (int n = 1; n <= imgG.getNSlices(); n++) {
+            imgG.setSlice(n);
             IJ.setAutoThreshold(imgG, "Default dark");
-            ana.measure();
-            area =+ rt.getValue("Area", 0);
+            analyzer.measure();
+            area += rt.getValue("Area", 0);
             rt.reset();
         }
-        img = imgG.duplicate();
+        
         flush_close(imgG);
-        double roiVol = area*imgG.getNSlices()*cal.pixelDepth;
-        return (round(roiVol/meanNucVol));
+        return ((int) round(area*cal.pixelDepth/meanNucVol));
     }
     
-     /**
+    
+    /**
      * 3D Gaussian filter using CLIJ2
      */ 
     public ImagePlus gaussian_filter(ImagePlus img, double sizeXY) {
@@ -251,7 +302,20 @@ public class Tools {
     
     
     /**
-     * 3D Median filter using CLIJ2
+     * Threshold using CLIJ2
+     */
+    public ImagePlus threshold(ImagePlus img, String thMed) {
+        ClearCLBuffer imgCL = clij2.push(img);
+        ClearCLBuffer imgCLBin = clij2.create(imgCL);
+        clij2.automaticThreshold(imgCL, imgCLBin, thMed);
+        ImagePlus imgBin = clij2.pull(imgCLBin);
+        clij2.release(imgCLBin);
+        return(imgBin);
+    }
+    
+       
+    /**
+     * 3D median filter using CLIJ2
      */ 
     public ImagePlus median_filter(ImagePlus img, double sizeXY, double sizeZ) {
        ClearCLBuffer imgCL = clij2.push(img);
@@ -263,38 +327,36 @@ public class Tools {
        return(imgMed);
     }
    
+
     /**
-     * Threshold 
-     * USING CLIJ2
-     * @param img
-     * @param thMed
+     * Clear outside ROI
      */
-    public ImagePlus threshold(ImagePlus img, String thMed) {
-        ClearCLBuffer imgCL = clij2.push(img);
-        ClearCLBuffer imgCLBin = clij2.create(imgCL);
-        clij2.automaticThreshold(imgCL, imgCLBin, thMed);
-        ImagePlus imgBin = clij2.pull(imgCLBin);
-        clij2.release(imgCLBin);
-        return(imgBin);
-    }
+    public void clearOutside(ImagePlus img, Roi roi) {
+        PolygonRoi poly = new PolygonRoi(roi.getFloatPolygon(), Roi.FREEROI);
+        poly.setLocation(0, 0);
+        for (int n = 1; n <= img.getNSlices(); n++) {
+            ImageProcessor ip = img.getImageStack().getProcessor(n);
+            ip.setRoi(poly);
+            ip.setBackgroundValue(0);
+            ip.setColor(0);
+            ip.fillOutside(poly);
+        }
+        img.updateAndDraw();
+    } 
     
     
+    /**
+     * Compute ROI volume
+     */
     public double roiVol(Roi roi, ImagePlus img) {
         PolygonRoi poly = new PolygonRoi(roi.getFloatPolygon(), Roi.FREEROI);
         poly.setLocation(0, 0);
+        img.setRoi(poly);
+        
         ResultsTable rt = new ResultsTable();
-        Analyzer ana = new Analyzer(img, Analyzer.AREA, rt);
-        double area = 0;
-        for (int n = 1; n <= img.getNSlices(); n++) {
-            img.setRoi(poly);
-            ana.measure();
-            area =+ rt.getValue("Area", 0);
-            rt.reset();
-        }
-        double roiVol =  area*img.getNSlices()*cal.pixelDepth;
-        return(area);
+        Analyzer analyzer = new Analyzer(img, Analyzer.AREA, rt);
+        analyzer.measure();
+        return(rt.getValue("Area", 0) * img.getNSlices() * cal.pixelDepth);
     }   
-    
-     
-    
+
 }

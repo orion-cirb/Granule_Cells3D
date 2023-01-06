@@ -18,7 +18,7 @@ With each image should be provided a *.roi* or *.zip* file containing one or mul
 
 ### Plugin description
 
-Count nuclei based on the total volume of packed nuclei divided by as nucleus volume estimation of 250 microns^3. 
+Count nuclei based on the total volume of packed nuclei divided by a volume estimation of a nucleus (250 microns^3). 
 
 ### Dependencies
 
@@ -26,4 +26,4 @@ Count nuclei based on the total volume of packed nuclei divided by as nucleus vo
 
 ### Version history
 
-Version 1 released on décembre 14, 2022.
+Version 1 released on December 14, 2022.

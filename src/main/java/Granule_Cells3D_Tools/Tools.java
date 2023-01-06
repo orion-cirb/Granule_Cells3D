@@ -5,7 +5,6 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
-import ij.gui.WaitForUserDialog;
 import ij.measure.Calibration;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
@@ -267,9 +266,6 @@ public class Tools {
         imgG = median_filter(imgG, 4, 4);
         clearOutside(imgG, roi);
         imgG.setCalibration(cal);
-        
-        imgG.duplicate().show();
-        new WaitForUserDialog("").show();
         
         ResultsTable rt = new ResultsTable();
         Analyzer analyzer = new Analyzer(imgG, Analyzer.AREA+Analyzer.LIMIT, rt);
